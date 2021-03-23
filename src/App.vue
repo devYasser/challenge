@@ -1,13 +1,13 @@
 <template>
   <div id="app">
     <header>
-      <div class="container">
+      <div class="container-fluid">
         <div class="row jc-between">
           <img src="@/assets/aerolab-logo.svg" alt="Aerolab">
           <div class="user">
-            <div class="user-name color-dark-gray"> Jonh Kite </div>
+            <div class="user-name color-dark-gray"> {{this.user}} </div>
             <div class="user-points color-dark-gray">
-              1000
+              {{this.userPoints}}
               <img class="icon icon-coin ml-1 " src="@/assets/icons/coin.svg" alt="coin">
             </div>
           </div>
@@ -16,7 +16,9 @@
     </header>
       <section class="hero">
         <div class="container">
-          <h1>Electronics</h1>
+          <div class="row">
+            <h1>Electronics</h1>
+          </div>
         </div>
       </section>
       <main>
@@ -26,57 +28,114 @@
               <div class="total-prod color-dark-gray"> 16 of 32  <span class="d-none d-md-block" > products </span> </div>
               <div class="sort-by">
                 <span>Sort by:</span>
-                <div class="pill active"> Most recent </div>
-                <div class="pill"> Lowest price </div>
+                <button @click="orderBy = '', active = 1, getProducts()" :class="[active == 1 ? 'active' : '']" class="pill pill-filter"> Most recent </button>
+                <button @click="orderBy = 'lowPrices', active = 2" :class="[active == 2 ? 'active' : '']" class="pill pill-filter"> Lowest price </button>
+                <button @click="orderBy = 'hightPrices', active = 3" :class="[active == 3 ? 'active' : '']" class="pill pill-filter"> Highest price </button>
               </div>
             </div>
           </div>
           <section class="products" >
             <div class="container">
-              <div class="prod">
-                <div class="prod-status">
-                  <div class="icon-redeem"> 
-                    <img src="@/assets/icons/buy-blue.svg" alt="redeem"> 
-                    <img src="@/assets/icons/buy-white.svg" alt="redeem"> 
+              <div class="prod-grid">
+                <div v-for="item in productsFiltered" v-bind:key="item.id" class="prod" :id="item._id">
+                  <div class="prod-status">
+                    <div v-if="userPoints > item.cost " class="icon-redeem"> 
+                      <img src="@/assets/icons/buy-blue.svg" alt="redeem"> 
+                      <img src="@/assets/icons/buy-white.svg" alt="redeem"> 
+                    </div>
+                    <div v-else>
+                      <div class="pill pill-prod">You need {{item.cost - userPoints}}
+                      <img class="icon icon-coin ml-1 " src="@/assets/icons/coin.svg" alt="coin">
+                    </div>
+                    </div>
+                  </div>
+                    <img class="img-fluid prod-img" :src="item.img.url" :alt="item.name">
+                  <div class="prod-info">
+                    <div class="prod-cat"> {{item.category}} </div>
+                    <div class="prod-title color-dark-gray"> {{item.name}} </div>
+                  </div>
+                  <div class="prod-price">
+                      <div class="price">{{item.cost}}
+                        <img class="icon icon-coin ml-1 " src="@/assets/icons/coin.svg" alt="coin"> 
+                      </div>
+                      <a v-show="userPoints > item.cost" class="btn-redeem"> Redeem now</a>
                   </div>
                 </div>
-                <img class="img-fluid prod-img" src="@/assets/product-pics/iPhone8-x1.png" alt="">
-                <div class="prod-info">
-                  <div class="prod-cat"> Phones </div>
-                  <div class="prod-title color-dark-gray"> iPhone 8 </div>
-                </div>
-                <div class="prod-price">
-                    <div class="price">12.000 
-                      <img class="icon icon-coin ml-1 " src="@/assets/icons/coin.svg" alt="coin"> 
-                    </div>
-                    <a class="btn-redeem"> Redeem now</a>
-                </div>
-              </div>
-              <div class="prod">
-                <div class="prod-status">
-                  <!-- <div class="icon-buy"> <img src="@/assets/icons/buy-blue.svg" alt="redeem"> </div> -->
-                  <div class="pill pill-prod">You need 8000
-                    <img class="icon icon-coin ml-1 " src="@/assets/icons/coin.svg" alt="coin">
-                  </div>
-                </div>
-                <img class="img-fluid prod-img" src="@/assets/product-pics/iPhone8-x1.png" alt="">
-                <div class="prod-info">
-                  <div class="prod-cat"> Phones </div>
-                  <div class="prod-title color-dark-gray"> iPhone 8 </div>
-                </div>
-                <div class="prod-price">
-                    <div class="price">12.000 
-                      <img class="icon icon-coin ml-1 " src="@/assets/icons/coin.svg" alt="coin"> 
-                    </div>
-                    <a class="btn-redeem"> Redeem now</a>
-                </div>
-              </div>
+              </div>  
             </div>
           </section>
         </section>
       </main>
   </div>
 </template>
+
+<script>
+import axios from 'axios'
+
+export default {
+  components: {
+    
+  },
+  data(){
+    return {
+        user:'',
+        userPoints:'',
+        products:[],
+        orderBy:'',
+        active:'1'
+      }
+  },
+  created(){
+
+    this.token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2MDUxMjU0OTdlNzE4NzAwMjBlMzhmOTUiLCJpYXQiOjE2MTU5MzA2OTd9.37CNui965OoX0h5MeRCg52SXA7-yEbJkfmRxtLjmSQE';
+    this.getUser()
+    this.getProducts()
+  },
+  methods:{
+    getUser(){
+      axios.get('https://coding-challenge-api.aerolab.co/user/me', {
+        headers: {
+          'Authorization': `Bearer ${this.token}`
+        }  
+      })
+      .then(res => {
+              this.user = res.data.name
+              this.userPoints = res.data.points
+      })
+      .catch( e => console.log(e))
+    },
+    getProducts(){
+       axios.get('https://coding-challenge-api.aerolab.co/products', {
+        headers: {
+          'Authorization': `Bearer ${this.token}`
+        }  
+      })
+      .then(res => {
+          this.products = res.data
+      })
+      .catch( e => console.log(e))
+    }
+  },
+  computed:{
+    productsFiltered(){
+        let filterProd = this.products
+        if (this.orderBy === 'lowPrices') {
+          filterProd.sort(function(a, b) {
+              return parseFloat(a.cost) - parseFloat(b.cost);
+          });
+        } else if(this.orderBy === 'hightPrices') {
+          filterProd.sort(function(a, b) {
+              return parseFloat(b.cost) - parseFloat(a.cost);
+          });
+        // } else if(this.orderBy === 'recents'){
+         
+        
+         }  
+        return filterProd;
+    }
+  }
+}
+</script>
 
 <style lang="scss">
 
@@ -94,8 +153,12 @@
 }
 
 //  base
-body { 
+
+* {
   margin:0;
+  box-sizing: border-box;
+}
+body {
   color:#a3a3a3;
   background-color: #f9f9f9;
 }
@@ -107,10 +170,23 @@ body {
 
 
 .container { 
-  max-width: 1440px;
+  width: 100%;
+  max-width: 1120px;
+  padding: 0 16px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.container-fluid {
+  width: 100%;
   padding: 0 16px;
 }
-.row { display: flex; }
+
+.row { 
+  display: flex;
+  // margin-right: -16px;
+  // margin-left: -16px;
+}
 .jc-between { justify-content: space-between; }
 
 header{
@@ -142,9 +218,24 @@ header{
   display: flex;
   align-items: flex-end;
 
-  h1{ 
+  h1 { 
     color: #fff;
     font-weight: 900;
+    margin-bottom: 24px;
+  }
+
+  @media(min-width: 768px){
+    height: 28vh;
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 48px;
+    }
+  }
+  @media(min-width: 1366px){
+    height: 420px;
+    h1 {
+      font-size: 4rem;
+    }
   }
 }
 
@@ -189,6 +280,34 @@ header{
       height: 25px;
     }
   }
+
+  &-filter {
+    cursor: pointer;
+    border: 0;
+    outline: 0;
+    transition: .15s;
+    color:var(--gray-800);
+    @media( min-width:768px ){
+      font-size: 1.1rem;
+      font-weight: 400;
+      padding: 12px 28px;
+      border-radius: 22px;
+
+    }
+
+    &:hover {
+      background-color: #f67b04;
+      color: #fff;
+    }
+  }
+}
+
+.prod-grid{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, 280px);
+  grid-gap: 48px;
+  justify-content: center;
+  padding: 42px 0;
 }
 
 .prod {
@@ -200,10 +319,10 @@ header{
   background-color: #fff;
   box-shadow:2px 2px 6px 0 rgba(0,0,0,.2);
   padding: 18px;
-  margin: 24px;
+  margin: 0 auto;
   width: 280px;
   height: 280px;
-  transition: .15s;
+  transition: .350s;
   cursor: pointer;
 
   &-status {
@@ -262,7 +381,7 @@ header{
   }
 
   &:hover {
-    transform: translateY(-4px);
+    transform: translateY(-8px);
     box-shadow:8px 9px 19px 0px rgb(0 0 0 / 30%);
 
     .prod-price {
@@ -278,15 +397,17 @@ header{
 
 }
 
+
 // Helpers
 .d-none { display: none; }
 .mx-2 { margin:0 0.5rem; }
 .ml-1 { margin-left:0.2rem; }
 .color-dark-gray { color: var(--gray-800); }
-.border-bottom { border-bottom: 1px solid var(--gray-500);}
+.border-bottom { border-bottom: 1px solid var(--gray-400);}
 .img-fluid {    
   max-width: 100%;
   height: auto;
 }
+
 
 </style>
