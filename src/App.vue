@@ -7,7 +7,7 @@
           <div class="user">
             <div class="user-name color-dark-gray"> {{this.user}} </div>
             <div class="user-points color-dark-gray">
-              {{this.userPoints}}
+                <span :class="{'ani-number': animated}" @animationend="animated = false" >{{this.userPoints}}</span>
               <img class="icon icon-coin ml-1 " src="@/assets/icons/coin.svg" alt="coin">
             </div>
           </div>
@@ -25,7 +25,7 @@
         <section class="filters">
           <div class="container">
             <div class="row border-bottom">
-              <div class="total-prod color-dark-gray"> 16 of 32  <span class="d-none d-md-block" > products </span> </div>
+              <div class="total-prod color-dark-gray"> {{pageOffest}} of {{totalResults}}   products  </div>
               <div class="sort-by">
                 <span>Sort by:</span>
                 <button @click="orderBy = '', active = 1, getProducts()" :class="[active == 1 ? 'active' : '']" class="pill pill-filter"> Most recent </button>
@@ -58,10 +58,15 @@
                       <div class="price">{{item.cost}}
                         <img class="icon icon-coin ml-1 " src="@/assets/icons/coin.svg" alt="coin"> 
                       </div>
-                      <a v-show="userPoints > item.cost" class="btn-redeem"> Redeem now</a>
+                      <a v-show="userPoints > item.cost" @click="redeemProd(item._id)" class="btn-redeem"> Redeem now</a>
                   </div>
                 </div>
-              </div>  
+              </div>
+              <div class="container">
+                <div class="row jc-center">
+                  <button class="btn-primary" @click="loadMore" v-if="currentPage * maxPerPage < products.length">Load more</button>
+                </div>
+              </div>
             </div>
           </section>
         </section>
@@ -82,7 +87,11 @@ export default {
         userPoints:'',
         products:[],
         orderBy:'',
-        active:'1'
+        active:'1',
+        currentPage: 1,
+        maxPerPage: 16,
+        showReadMore: true,
+        animated: false
       }
   },
   created(){
@@ -101,6 +110,7 @@ export default {
       .then(res => {
               this.user = res.data.name
               this.userPoints = res.data.points
+              console.log(res.data)
       })
       .catch( e => console.log(e))
     },
@@ -114,26 +124,62 @@ export default {
           this.products = res.data
       })
       .catch( e => console.log(e))
-    }
+    },
+    redeemProd(id){
+        axios.post('https://coding-challenge-api.aerolab.co/redeem', {
+          'productId': id
+      }, 
+      {
+        headers: {
+            'Authorization': `Bearer ${this.token}`
+        }
+      })
+      .then(function (response) {
+          console.log(response);
+          
+      })
+      .finally(()=>  {
+          this.getUser()
+      });
+    },
+    loadMore() {
+      this.currentPage += 1;
+    },
   },
   computed:{
+    
+    totalResults() {
+      return Object.keys(this.products).length;
+    },
+    pageCount() {
+      return Math.ceil(this.totalResults / this.maxPerPage);
+    },
+    pageOffest() {
+      return this.maxPerPage * this.currentPage;
+    },
+    paginatedProd() {
+      return this.products.slice(0, this.currentPage * this.maxPerPage);
+    },
     productsFiltered(){
-        let filterProd = this.products
-        if (this.orderBy === 'lowPrices') {
-          filterProd.sort(function(a, b) {
-              return parseFloat(a.cost) - parseFloat(b.cost);
-          });
-        } else if(this.orderBy === 'hightPrices') {
-          filterProd.sort(function(a, b) {
-              return parseFloat(b.cost) - parseFloat(a.cost);
-          });
-        // } else if(this.orderBy === 'recents'){
-         
-        
-         }  
-        return filterProd;
+      let filterProd = this.paginatedProd
+      if (this.orderBy === 'lowPrices') {
+        filterProd.sort(function(a, b) {
+            return parseFloat(a.cost) - parseFloat(b.cost);
+        });
+      }else if(this.orderBy === 'hightPrices') {
+        filterProd.sort(function(a, b) {
+            return parseFloat(b.cost) - parseFloat(a.cost);
+        });
+      }  
+      return filterProd;
     }
-  }
+    
+  },
+    watch:{
+      userPoints:function(){
+        this.animated = true;
+      }
+    }
 }
 </script>
 
@@ -146,6 +192,7 @@ export default {
   --main-blue-rgb:  10,212,250;
   --gray-800-rgb :  97,97,97;
   --main-blue:    #0ad4fa;
+  --color-accent: #f67b04;
   --gray-800:     #616161;
   --gray-500:     #bbbbbb;
   --gray-400:     #d9d9d9;
@@ -187,11 +234,17 @@ body {
   // margin-right: -16px;
   // margin-left: -16px;
 }
-.jc-between { justify-content: space-between; }
+
 
 header{
   //height: 80px;
   padding: 8px 0;
+  background-color: #fff;
+  position: fixed;
+  top: 0;
+  width: 100%;
+  box-shadow: 0 2px 10px rgb(0 0 0 / 9%);
+  z-index: 2;
 }
 
 // user
@@ -217,6 +270,7 @@ header{
   height: 16vh;
   display: flex;
   align-items: flex-end;
+  margin-top: 64px;
 
   h1 { 
     color: #fff;
@@ -249,9 +303,21 @@ header{
   .sort-by {
     display: flex;
     align-items: center;
-    margin-left: 1rem;
-    padding-left: 1rem;
-    border-left:1px solid var(--gray-500);
+    color:var(--gray-800);
+
+    @media(min-width: 768px) {
+      margin-left: 1rem;
+      padding-left: 1rem;
+      border-left:1px solid var(--gray-500);
+    }
+
+  }
+
+  .total-prod {
+    display: none;
+    @media(min-width: 768px) {
+      display:block ;
+    }
   }
 }
 
@@ -296,7 +362,7 @@ header{
     }
 
     &:hover {
-      background-color: #f67b04;
+      background-color: var(--color-accent);
       color: #fff;
     }
   }
@@ -397,9 +463,49 @@ header{
 
 }
 
+@keyframes ani-num {
+  0% {
+    color: rgb(52, 52, 52); 
+    transform: scale(1);
+    }
+  50% {
+    transform: scale(1.3);
+  }  
+  to {
+    color: rgb(247, 131, 8);
+    transform: scale(1);
+    }
+}
+
+.ani-number {
+  animation-name: ani-num;
+  animation-duration: .5s;
+}
+
+.btn-primary {
+  background-color:var(--main-blue);
+  min-width:200px;
+  padding: 12px 18px;
+  color: #fff;
+  text-align: center;
+  border-radius: 22px;
+  font-weight: 800;
+  font-size: 1.2rem;
+  border: none;
+  outline: none;
+  cursor: pointer;
+
+  &:hover {
+    background-color: var(--color-accent);
+    color: #fff;
+  }
+}
 
 // Helpers
 .d-none { display: none; }
+.jc-between { justify-content: space-between; }
+.jc-center { justify-content: center; }
+.mx-auto {margin: 0 auto;}
 .mx-2 { margin:0 0.5rem; }
 .ml-1 { margin-left:0.2rem; }
 .color-dark-gray { color: var(--gray-800); }
